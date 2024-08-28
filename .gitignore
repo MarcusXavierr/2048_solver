@@ -1,0 +1,5 @@
+src/__pycache__/
+src/helpers/__pycache__/
+.python-version
+venv/
+external/
