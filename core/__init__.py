@@ -1,3 +1,4 @@
 from .timing import Delay
 from .keyboard import Keyboard
-from .utils import Game
+from .game import Game
+from .data import BoardData
