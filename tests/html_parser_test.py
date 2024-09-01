@@ -1,5 +1,5 @@
 import pytest
-from utils import convert_to_board
+from utils.html_parser import convert_to_board
 
 @pytest.fixture(autouse=True)
 def before_all():

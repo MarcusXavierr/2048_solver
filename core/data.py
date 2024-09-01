@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from numpy import matrix
+from numpy import ndarray
 
 @dataclass
 class BoardData:
-    board: matrix
+    board: ndarray
     score: int
