@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from selenium.webdriver.chrome.webdriver import WebDriver
 from core import BoardData
 from numpy import matrix
+from lxml import html as HTML
 
 @dataclass
 class ParsedHTML:
@@ -17,7 +18,7 @@ class HTMLHelper:
         self.driver = driver
 
 def parse_html(html: str) -> list[ParsedHTML]:
-    # TODO: Parse the acual HTML, maybe with xpath
+    tree = HTML.fromstring(html)
     return []
 
 def convert_to_board(html: str) -> BoardData:
