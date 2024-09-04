@@ -1,6 +1,9 @@
+from typing import cast
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+
+from core.valid_keys import ValidKeys
 
 class Keyboard:
     def __init__(self, driver: WebDriver):
