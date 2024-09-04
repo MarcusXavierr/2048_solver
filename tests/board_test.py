@@ -2,7 +2,7 @@ import numpy as np
 from core.data import BoardData
 from core.valid_keys import ValidKeys
 
-from utils.board import move_board, slide_row_to_left
+from utils.board import move_board, slide_row_to_left, transiction_board
 
 def test_validate_slide_row_to_left():
     row = np.array([2, 0, 0, 2])
@@ -42,9 +42,9 @@ def test_validate_move_board_to_up():
         [0, 0, 8, 0],
         [0, 0, 0, 0]
     ])
-    got = move_board(BoardData(board, 0), ValidKeys.UP)
+    got = move_board(BoardData(board, 100), ValidKeys.UP)
     assert got.board.all() == want.all()
-    assert got.score == 4
+    assert got.score == 104
 
 def test_validate_move_board_to_left():
     board = np.array([
@@ -62,3 +62,23 @@ def test_validate_move_board_to_left():
     got = move_board(BoardData(board, 0), ValidKeys.LEFT)
     assert got.board.all() == want.all()
     assert got.score == 0
+
+def test_transiction_losing_board():
+    board = np.array([
+        [128, 4, 8, 2],
+        [2, 4, 2, 4],
+        [2, 0, 4, 2],
+        [2, 4, 8, 2]
+    ])
+
+    want = np.array([
+        [128, 4, 8, 2],
+        [2, 4, 2, 4],
+        [2, 4, 2, 2],
+        [2, 4, 8, 2]
+    ])
+
+    got = transiction_board(BoardData(board, 1200), ValidKeys.LEFT)
+    assert got.board.all() == want.all()
+    assert got.score == 1200
+

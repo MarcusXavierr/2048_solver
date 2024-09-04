@@ -12,7 +12,7 @@ def transiction_board(data: BoardData, move: ValidKeys) -> BoardData:
 # TODO: Refatorar pra remover a parte repetitiva de dentro dos ifs
 def move_board(data: BoardData, move: ValidKeys) -> BoardData:
     new_board = np.zeros(data.board.shape)
-    score = 0
+    score = data.score
     if move == ValidKeys.LEFT:
         for i in range(data.board.shape[0]):
             new_row, row_score = slide_row_to_left(data.board[i])
@@ -81,7 +81,7 @@ def insert_value_at_random_empty_position(board: np.ndarray) -> np.ndarray:
         return board
 
     np.random.shuffle(empty_positions)
-    i, j = np.random.choice(empty_positions)
+    i, j = empty_positions[np.random.choice(len(empty_positions))]
     board[i][j] = 2
     return board
 
