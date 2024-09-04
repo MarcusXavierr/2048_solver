@@ -5,6 +5,8 @@ import numpy as np
 
 def transiction_board(data: BoardData, move: ValidKeys) -> BoardData:
     new_board = move_board(data, move)
+    if np.array_equal(new_board.board, data.board):
+        return BoardData(new_board.board, -1)
     new_board.board = insert_value_at_random_empty_position(new_board.board)
 
     return new_board

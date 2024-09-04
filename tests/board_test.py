@@ -67,18 +67,28 @@ def test_transiction_losing_board():
     board = np.array([
         [128, 4, 8, 2],
         [2, 4, 2, 4],
-        [2, 0, 4, 2],
+        [2, 4, 2, 2],
         [2, 4, 8, 2]
     ])
 
     want = np.array([
         [128, 4, 8, 2],
         [2, 4, 2, 4],
-        [2, 4, 2, 2],
+        [2, 4, 4, 2],
         [2, 4, 8, 2]
     ])
 
     got = transiction_board(BoardData(board, 1200), ValidKeys.LEFT)
     assert got.board.all() == want.all()
-    assert got.score == 1200
+    assert got.score == 1204
 
+def test_punish_not_moving_boards():
+    board = np.array([
+        [128, 4, 8, 2],
+        [2, 8, 2, 4],
+        [4, 2, 4, 2],
+        [2, 0, 8, 0]
+    ])
+
+    got = transiction_board(BoardData(board, 1000), ValidKeys.UP)
+    assert got.score == 0
