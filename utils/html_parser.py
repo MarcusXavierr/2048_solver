@@ -19,10 +19,10 @@ class HTMLHelper:
 
     def get_board_data(self) -> BoardData:
         parsed_html = self._parse_html()
-        # score = self.driver.find_element(By.CLASS_NAME, "score-container").text
+        score = self.driver.find_element(By.XPATH, '//div[@class="score-container"]').text
         # TODO: Achar uma forma de obter o score pelo score-container. Separando o score do +N que vem no text junto
-        score = self.driver.find_element(By.CLASS_NAME, "best-container").text
-        return convert_to_board(parsed_html, int(score))
+        # score = self.driver.find_element(By.CLASS_NAME, "best-container").text
+        return convert_to_board(parsed_html, int(score.split("\n")[0]))
 
     def _parse_html(self, error_counter: int = 0) -> list[ParsedHTML]:
         tile_div = self.driver.find_element(By.CLASS_NAME, "tile-container")
