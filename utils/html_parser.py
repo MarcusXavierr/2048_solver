@@ -14,7 +14,6 @@ class ParsedHTML:
     was_merged: bool
 
 class HTMLHelper:
-    # TODO: Use this to extract the HTML from the page and then call the convert_to_board function
     def __init__(self, driver: WebDriver) -> None:
         self.driver = driver
 
