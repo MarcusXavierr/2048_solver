@@ -1,17 +1,21 @@
 from functools import lru_cache
-from typing import cast
+import time
+from typing import cast, Optional
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from collections import deque
 
 from core.data import BoardData
 from core.valid_keys import ValidKeys
 # from utils import transiction_board
 import numpy as np
 
+GAME_OVER_MOVE = -1
+INVALID_MOVE = -2
+
 class Game:
-    def __init__(self, driver: WebDriver|None, num_of_simulations: int = 6) -> None:
+    ## TODO: Pensar em COMO passar do limite de 15000 pontos
+    def __init__(self, driver: WebDriver|None, num_of_simulations: int = 5) -> None:
         self.driver = driver
         self.num_of_simulations = num_of_simulations
         self.counter = 0
@@ -43,7 +47,7 @@ class Game:
         return
 
     def get_best_next_move(self, board: BoardData) -> str:
-        _, best_move = self._simulate_next_move(board, 0, None)
+        _, best_move, _ = self._simulate_next_move_multiple(board, 0)
         if best_move is None:
             raise Exception("Erro na lógica: Eu não deveria passar o None da ultima recursão pra trás")
 
@@ -56,33 +60,61 @@ class Game:
         return Keys.RIGHT
 
     @lru_cache(maxsize=None)
-    def _simulate_next_move(self, board: BoardData, recurse_counter: int, last_move: ValidKeys|None) -> tuple[BoardData, ValidKeys|None]:
+    def _simulate_next_move(self, board: BoardData, recurse_counter: int) -> tuple[BoardData, ValidKeys|None, int]:
         if recurse_counter == self.num_of_simulations:
-            return board, None
+            return board, None, count_empty_positions(board.board)
 
-        boards: list[tuple[BoardData, ValidKeys|None]] = [(board, ValidKeys.UP)]
-        # Criar uma função que me retorne os movimentos possíveis pro tabuleiro :(
-        # TODO: Depois eu vou testar fazer uma A* search ou uma Greedy search aqui. Ao inves de expandir todos os nós, eu vou simular todo um nível, e só expandir o que parece melhor. Ou então simular 3 níveis, e depois expandir isso
+        boards: list[tuple[BoardData, ValidKeys|None, int]] = []
         for move in [ValidKeys.UP, ValidKeys.DOWN, ValidKeys.LEFT, ValidKeys.RIGHT]:
-            if move == last_move:
+            b, e = transiction_board(board, move)
+            if b.score <= GAME_OVER_MOVE:
+                boards.append((b, move, e))
                 continue
+            x, _, e = self._simulate_next_move(b, recurse_counter + 1)
+            boards.append((x, move, e))
 
-            b = transiction_board(board, move)
-            if b.score == -1:
-                continue
-            b, _ = self._simulate_next_move(b, recurse_counter + 1, move)
-            boards.append((b, move))
+        return max(boards, key=lambda x: (x[0].score, x[2]))
 
-        return max(boards, key=lambda x: x[0].score)
+    def _simulate_next_move_multiple(self, board: BoardData, recurse_counter: int) -> tuple[BoardData, ValidKeys|None, int]:
+        if recurse_counter == self.num_of_simulations:
+            return board, None, count_empty_positions(board.board)
+
+        boards: list[tuple[BoardData, ValidKeys|None, int]] = []
+        num_simulations = 3 if recurse_counter == 0 or recurse_counter == 1 else 1
+        for _ in range(num_simulations):
+            for i, move in enumerate([ValidKeys.UP, ValidKeys.DOWN, ValidKeys.LEFT, ValidKeys.RIGHT]):
+                b, e = transiction_board(board, move)
+                if b.score <= GAME_OVER_MOVE:
+                    if len(boards) <= i:
+                        boards.append((b, move, e))
+                    else:
+                        tmp = boards[i]
+                        b.score = (b.score + tmp[0].score) // 2
+                        mean_empty_spots = (e + tmp[2]) // 2
+                        boards[i] = (b, move, mean_empty_spots)
+                    continue
+
+                x, _, e = self._simulate_next_move_multiple(b, recurse_counter + 1)
+                if len(boards) <= i:
+                    boards.append((x, move, e))
+                else:
+                    tmp = boards[i]
+                    x.score = (x.score + tmp[0].score) // 2
+                    mean_empty_spots = (e + tmp[2]) // 2
+                    boards[i] = (x, move, mean_empty_spots)
+
+        return max(boards, key=lambda x: (x[0].score, x[2]))
 
 # TODO: Resolver esse import circular depois
-def transiction_board(data: BoardData, move: ValidKeys) -> BoardData:
+def transiction_board(data: BoardData, move: ValidKeys) -> tuple[BoardData, int]:
     new_board = move_board(data, move)
     if np.array_equal(new_board.board, data.board):
-        return BoardData(new_board.board, -1)
-    new_board.board = insert_value_at_random_empty_position(new_board.board)
+        return BoardData(new_board.board, INVALID_MOVE), INVALID_MOVE
+    new_board.board, empty_positions = insert_value_at_random_empty_position(new_board.board)
+    # if empty_positions == 0:
+    #     return BoardData(new_board.board, GAME_OVER_MOVE)
 
-    return new_board
+    return new_board, empty_positions
 
 # TODO: Refatorar pra remover a parte repetitiva de dentro dos ifs
 def move_board(data: BoardData, move: ValidKeys) -> BoardData:
@@ -123,6 +155,7 @@ def move_board(data: BoardData, move: ValidKeys) -> BoardData:
 def array_to_tuple(array: np.ndarray) -> tuple:
     return tuple(array.tolist())
 
+# TODO: mover essa função com otimização para o utils depois
 @lru_cache(maxsize=None)
 def slide_row_to_left(data: tuple) -> tuple[np.ndarray,int]:
     # Remove todos os valores zerados pra simplificar o trabalho, imagine [0, 2, 0, 2]
@@ -149,7 +182,7 @@ def slide_row_to_left(data: tuple) -> tuple[np.ndarray,int]:
     n_of_zeros = len(row) - len(new_row)
     return np.array(new_row + [0] * n_of_zeros), cast(int, score)
 
-def insert_value_at_random_empty_position(board: np.ndarray) -> np.ndarray:
+def insert_value_at_random_empty_position(board: np.ndarray) -> tuple[np.ndarray, int]:
     # Aqui eu preciso verificar se existe algum espaço vazio, eu posso inserir o numero 2
     empty_positions = []
     for i in range(board.shape[0]):
@@ -158,10 +191,10 @@ def insert_value_at_random_empty_position(board: np.ndarray) -> np.ndarray:
                 empty_positions.append((i, j))
 
     if len(empty_positions) == 0:
-        return board
+        return board, 0
 
+    np.random.seed(round(time.time() * 1000000) % 2 ** 32)
     np.random.shuffle(empty_positions)
     i, j = empty_positions[np.random.choice(len(empty_positions))]
-    board[i][j] = 2
-    return board
-
+    board[i][j] = cast(int, np.random.choice([2, 4], p=[0.9, 0.1]))
+    return board, len(empty_positions) - 1
